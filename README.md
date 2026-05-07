@@ -80,7 +80,8 @@ docker-compose down
 *   **Thống kê Thị trường (Market Metrics):** Cung cấp cái nhìn tổng quan thông qua các KPI như giá cao nhất/thấp nhất, độ biến động trong khoảng thời gian phân tích.
 *   **Xuất Báo Cáo Word:** Cung cấp tính năng tự động tạo và tải xuống báo cáo phân tích học thuật bao gồm kiến trúc, phương pháp phát hiện bất thường và các biểu đồ bằng file `.docx`.
 
-## 🤝 Tác giả
+## 🤝 Tác giả: Nguyễn Hoàng Mỹ
+
 Dự án nhằm mục đích trình diễn khả năng xây dựng Data Pipeline cho bài toán Big Data theo thời gian thực (Real-time Streaming Analytics).
 
 Repository: [Du_bao_va_Dua_ra_canh_bao_bien_dong_Tien_so_Binance](https://github.com/hoangmkid12/Du_bao_va_Dua_ra_canh_bao_bien_dong_Tien_so_Binance)
