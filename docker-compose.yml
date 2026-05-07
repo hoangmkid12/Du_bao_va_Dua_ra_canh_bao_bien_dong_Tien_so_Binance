@@ -1,0 +1,85 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: bitnamilegacy/zookeeper:latest
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+    networks:
+      - crypto_net
+
+  kafka:
+    image: bitnamilegacy/kafka:3.1.1
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,EXTERNAL://:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    depends_on:
+      - zookeeper
+    networks:
+      - crypto_net
+
+  spark-master:
+    image: bitnamilegacy/spark:latest
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - ./data:/opt/spark/data
+      - ./src:/opt/spark/src
+    networks:
+      - crypto_net
+
+  spark-worker:
+    image: bitnamilegacy/spark:latest
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    depends_on:
+      - spark-master
+    volumes:
+      - ./data:/opt/spark/data
+      - ./src:/opt/spark/src
+    networks:
+      - crypto_net
+      
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ivy_cache:/root/.ivy2   # Cache Spark JARs để không phải tải lại khi restart
+    working_dir: /app
+    networks:
+      - crypto_net
+
+networks:
+  crypto_net:
+    driver: bridge
+
+volumes:
+  ivy_cache:   # Lưu JAR cache của Spark/Ivy (hadoop, kafka-clients, v.v.)

@@ -1,0 +1,129 @@
+BỘ GIÁO DỤC VÀ ĐÀO TẠO
+TRƯỜNG ĐẠI HỌC CÔNG NGHIỆP TP.HỒ CHÍ MINH
+
+
+
+
+
+
+BÁO CÁO CUỐI KỲ MÔN HỌC
+
+NHẬP MÔN DỮ LIỆU LỚN (BIG DATA)
+
+
+ĐỀ TÀI:
+HỆ THỐNG GIÁM SÁT VÀ PHÁT HIỆN BẤT THƯỜNG TRÊN LUỒNG GIAO DỊCH TIỀN MÃ HÓA REAL-TIME SỬ DỤNG APACHE KAFKA VÀ SPARK STREAMING
+
+
+
+
+
+
+Giảng viên hướng dẫn: TS. Ngô Hữu Dũng
+Sinh viên thực hiện: Nguyễn Hoàng Mỹ
+Mã số sinh viên: 22033181
+
+
+
+
+MỤC LỤC
+CHƯƠNG 1: TỔNG QUAN ĐỀ TÀI	3
+1.1. Lý do chọn đề tài	3
+1.2. Mục tiêu nghiên cứu	3
+CHƯƠNG 2: KIẾN TRÚC VÀ CÔNG NGHỆ	3
+2.1. Kiến trúc tổng thể	3
+2.2. Chi tiết các thành phần	3
+2.3. Sơ đồ luồng dữ liệu	3
+CHƯƠNG 3: TRIỂN KHAI KỸ THUẬT	4
+3.1. Tiền xử lý dữ liệu	4
+3.2. Thuật toán xử lý cửa sổ (Windowing)	4
+3.3. Công thức tính toán	4
+CHƯƠNG 4: KẾT QUẢ VÀ ĐÁNH GIÁ	4
+4.1. Giao diện Dashboard	4
+4.2. Hiệu năng hệ thống	6
+CHƯƠNG 5: KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN	7
+5.1. Những kết quả đạt được	7
+5.2. Hướng phát triển	7
+
+
+CHƯƠNG 1: TỔNG QUAN ĐỀ TÀI	
+1.1. Lý do chọn đề tài
+Trong kỷ nguyên số, thị trường tài chính phi tập trung tạo ra hàng tỷ giao dịch mỗi ngày. Dữ liệu này có đặc điểm 3V của Big Data: Volume (Khối lượng lớn), Velocity (Tốc độ nhanh) và Variety (Đa dạng). Việc xây dựng một hệ thống có khả năng xử lý tức thời để phát hiện các giao dịch đột biến của các tổ chức tài chính lớn (Cá mập) là vô cùng cấp thiết.
+1.2. Mục tiêu nghiên cứu
+Xây dựng Pipeline dữ liệu hoàn chỉnh từ nguồn phát tới nơi lưu trữ.
+Thực hiện tính toán các chỉ số kỹ thuật theo thời gian thực.
+Phát hiện các điểm bất thường trong luồng giao dịch.
+CHƯƠNG 2: KIẾN TRÚC VÀ CÔNG NGHỆ
+2.1. Kiến trúc tổng thể
+Hệ thống được thiết kế theo mô hình Lambda Architecture tối giản, tập trung vào Speed Layer để xử lý dữ liệu luồng.
+2.2. Chi tiết các thành phần
+2.2.1. Apache Kafka: Hệ thống hàng đợi thông điệp (Message Broker)
+Apache Kafka đóng vai trò là "trái tim" của hệ thống thu thập dữ liệu, đảm bảo dòng chảy thông tin thông suốt và an toàn.
+Vai trò cốt lõi:
+Hệ thống đệm (Buffering): Trong môi trường dữ liệu Crypto, tốc độ dữ liệu từ các sàn giao dịch (như Binance) có thể tăng đột biến. Kafka đóng vai trò là một "hồ chứa" tạm thời, giúp hệ thống không bị quá tải khi tốc độ dữ liệu vào nhanh hơn tốc độ xử lý của Spark.
+Khả năng chịu lỗi (Fault Tolerance): Kafka lưu trữ dữ liệu trên đĩa cứng và có cơ chế sao lưu (replication) qua nhiều nút (nodes). Nếu một thành phần trong hệ thống gặp sự cố, dữ liệu vẫn không bị mất và có thể được đọc lại từ vị trí cuối cùng (offset).
+Tách biệt hệ thống (Decoupling): Giúp bộ phận Producer (lấy dữ liệu từ API) và bộ phận Consumer (Spark Streaming) hoạt động độc lập. Producer chỉ việc đẩy dữ liệu lên Kafka mà không cần quan tâm Spark có đang bận hay không.
+2.2.2. PySpark Streaming: Công cụ xử lý dữ liệu thời gian thực
+Đây là "bộ não" thực hiện các tính toán phức tạp và phân tích dữ liệu ngay khi chúng vừa cập nhật.
+Cơ chế Structured Streaming:
+Xử lý Micro-batch: Thay vì xử lý từng dòng dữ liệu lẻ tẻ, Spark gom dữ liệu thành các lô nhỏ (micro-batches) trong khoảng thời gian cực ngắn (ví dụ: 1 giây) để xử lý đồng thời, giúp tối ưu hóa hiệu suất tính toán song song.
+Xử lý theo mô hình bảng (Table Model): Dữ liệu đến từ Kafka được coi như một bảng vô tận (unbounded table). Việc truy vấn dữ liệu thời gian thực trở nên đơn giản như thực hiện các câu lệnh SQL trên bảng dữ liệu tĩnh.
+Chức năng chính trong dự án:
+Phân tích kỹ thuật: Tính toán các chỉ số RSI, Moving Average (MA) ngay lập tức.
+Phát hiện bất thường (Anomaly Detection): Sử dụng các thuật toán hoặc ngưỡng logic để nhận diện "Whale activity" (hoạt động của cá mập) khi có các giao dịch với khối lượng đột biến.
+2.2.3. Streamlit: Giao diện trực quan hóa dữ liệu (Dashboard)
+Streamlit là thành phần cuối cùng giúp chuyển đổi các con số khô khan thành thông tin có giá trị cho người dùng.
+Ưu điểm vượt trội:
+Phản xạ thời gian thực (Reactivity): Cơ chế tự động chạy lại script khi dữ liệu nguồn thay đổi giúp Dashboard luôn cập nhật những biến động mới nhất của thị trường mà không cần người dùng phải nhấn F5.
+Tích hợp mạnh mẽ: Streamlit cho phép nhúng trực tiếp các biểu đồ tương tác từ thư viện Plotly hoặc Altair, giúp người dùng có thể phóng to, thu nhỏ hoặc kiểm tra chi tiết từng điểm dữ liệu trên đồ thị giá.
+Tối ưu hóa Frontend: Không cần viết mã HTML/CSS/JavaScript phức tạp, toàn bộ giao diện được xây dựng bằng ngôn ngữ Python, giúp lập trình viên tập trung tối đa vào logic xử lý và trình bày dữ liệu.
+Tóm tắt luồng dữ liệu (Data Pipeline):
+1. Ingestion: Dữ liệu Crypto từ API → Kafka (Lưu trữ an toàn).
+2. Processing: PySpark đọc từ Kafka → Tính toán RSI/Cá mập → Ghi kết quả ra file/vùng nhớ đệm.
+3. Visualization: Streamlit đọc kết quả đã xử lý → Hiển thị biểu đồ và cảnh báo lên trình duyệt.
+2.3. Sơ đồ luồng dữ liệu
+Binance WebSocket -> Kafka Producer -> Kafka Broker -> Spark Streaming -> CSV Sink -> Streamlit Dashboard
+CHƯƠNG 3: TRIỂN KHAI KỸ THUẬT
+3.1. Tiền xử lý dữ liệu
+Dữ liệu từ Binance có định dạng JSON thô. Hệ thống thực hiện ép kiểu (Schema Enforcement) để đảm bảo tính chính xác cho các phép toán số học.
+3.2. Thuật toán xử lý cửa sổ (Windowing)
+Hệ thống sử dụng Sliding Window với kích thước 5 giây. Cơ chế Watermarking (5 giây) được áp dụng để xử lý các dữ liệu đến muộn, tránh việc làm sai lệch kết quả thống kê.
+3.3. Công thức tính toán
+- Buy Pressure: Tính bằng tổng khối lượng lệnh mua chia cho tổng khối lượng giao dịch trong cửa sổ.
+- RSI (Relative Strength Index): Tính toán dựa trên sự thay đổi giá trung bình của 14 chu kỳ gần nhất.
+CHƯƠNG 4: KẾT QUẢ VÀ ĐÁNH GIÁ
+4.1. Giao diện Dashboard
+Giao diện được thiết kế theo phong cách hiện đại, hiển thị trực quan các biến động giá, luồng tiền và các cảnh báo Cá mập thông qua hệ thống Toast Notification.
+1. Thanh Sidebar (Thanh điều khiển bên trái) 
+Whale Pro Logo: Nhận diện thương hiệu của hệ thống. 
+Chọn đồng Coin theo dõi: Cho phép bạn đổi cặp tiền (BTC, ETH, SOL...) để giám sát. Khi bạn đổi, Spark sẽ tự lọc dữ liệu tương ứng. 
+Độ nhạy phát hiện: Đây là ngưỡng (Threshold). Nếu bạn kéo về 1.0, hệ thống sẽ báo Cá mập liên tục (nhạy quá). Nếu kéo lên 5.0, chỉ những giao dịch cực lớn mới bị cảnh báo. 
+Trạng thái hệ thống (LIVE/LAG/OFF): Cho biết đường truyền dữ liệu có thông hay không. Nếu là LIVE, nghĩa là dữ liệu từ Spark đang đổ về Dashboard liên tục. 
+Nút Xuất báo cáo: Tự động tổng hợp dữ liệu thành file Word mà chúng ta vừa tạo. 
+2. Bốn ô chỉ số (Top Metrics) 
+Giá hiện tại: Mức giá khớp lệnh trung bình trong 5 giây gần nhất. Màu xanh là giá đang tăng so với 5 giây trước, màu đỏ là đang giảm. 
+Lực Mua chủ động: Thể hiện tâm lý thị trường. Nếu con số này cao (>50%), nghĩa là phe mua đang chiếm ưu thế, có thể đẩy giá lên. 
+Biến động (5s): Độ chênh lệch giữa giá cao nhất và thấp nhất trong 5 giây. Nó đo lường độ "rung lắc" của thị trường. 
+Chỉ số RSI (14): Chỉ báo sức mạnh tương đối. Giúp bạn biết thị trường đang "quá nóng" (Quá mua) hay "quá lạnh" (Quá bán) để dự đoán nhịp hồi phục. 
+3. Khu vực Biểu đồ (Main Visuals) 
+Biến động giá thời gian thực (Biểu đồ đường): Vẽ lại lịch sử giá trong 1 phút gần nhất. Nó giúp giáo viên thấy được tính liên tục của luồng dữ liệu (Streaming). 
+Cường độ Mua (%) (Đồng hồ Gauge): Trực quan hóa lực mua. Kim đồng hồ càng về phía bên phải nghĩa là thị trường đang rất hưng phấn. 
+Luồng tiền Mua/Bán (Biểu đồ cột): Hiển thị khối lượng mua (xanh) và bán (đỏ) chồng lên nhau. Đây là nơi bạn soi được các cây cột cao đột biến - đó chính là dấu chân của Cá mập. 
+4. Hệ thống Cảnh báo & Nhật ký (Alerts & Logs) 
+Thông báo nổi (Toast): Khi Spark phát hiện một khối lượng giao dịch vượt ngưỡng bạn đã cài ở Sidebar, một thông báo sẽ hiện lên ngay góc màn hình để cảnh báo tức thời. 
+Nhật ký giao dịch Cá mập: Một bảng danh sách lưu lại 8 đợt "quét" gần nhất của Cá mập để bạn có bằng chứng phân tích lại sau đó.
+Toàn bộ các con số này không phải là dữ liệu tĩnh, mà là kết quả của việc tính toán song song trên Spark Streaming mỗi khi có một giao dịch phát sinh từ sàn Binance, đảm bảo tính cập nhật đến từng giây."
+4.2. Hiệu năng hệ thống
+Hệ thống đạt mức độ trễ trung bình dưới 2 giây từ lúc giao dịch phát sinh trên sàn tới khi hiển thị trên màn hình người dùng. Khả năng chịu tải đạt mức 500-1000 message/giây trên một Worker đơn lẻ.
+Giao diện Dashboard
+
+
+
+
+
+CHƯƠNG 5: KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN
+5.1. Những kết quả đạt được
+Đã làm chủ được công nghệ Spark Streaming và Kafka. Xây dựng được ứng dụng có tính thực tiễn cao.
+5.2. Hướng phát triển
+- Tích hợp mô hình Machine Learning (LSTM) để dự đoán giá.
+- Mở rộng hệ thống trên cụm Cloud (AWS/Azure) để xử lý hàng ngàn cặp tiền tệ cùng lúc.

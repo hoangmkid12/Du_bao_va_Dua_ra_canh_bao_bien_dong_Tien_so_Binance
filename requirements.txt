@@ -1,0 +1,9 @@
+streamlit
+pandas
+plotly
+websocket-client
+kafka-python
+pyspark==3.5.1
+python-docx
+numpy
+matplotlib
